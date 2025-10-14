@@ -1,4 +1,5 @@
 -- fix random term date before hire date
+USE SimpleBistro;
 Update `Server`
 	SET HireDate = '2020-01-01'
 WHERE HireDate > TermDate;
