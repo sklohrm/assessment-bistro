@@ -9,6 +9,14 @@ import java.sql.SQLException;
 public class OrderItemMapper implements RowMapper<OrderItem> {
     @Override
     public OrderItem mapRow(ResultSet rs, int rowNum) throws SQLException {
-        return null;
+        OrderItem orderItem = new OrderItem();
+
+        orderItem.setOrderItemID(rs.getInt("OrderItemID"));
+        orderItem.setOrderID(rs.getInt("OrderID"));
+        orderItem.setItemID(rs.getInt("ItemID"));
+        orderItem.setQuantity(rs.getInt("Quantity"));
+        orderItem.setPrice(rs.getBigDecimal("Price"));
+
+        return orderItem;
     }
 }
