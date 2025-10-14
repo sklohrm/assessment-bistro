@@ -60,4 +60,3 @@ UPDATE `Order` SET
 -- Handle final order total
 UPDATE `Order` SET 
 	Total = SubTotal + Tax + Tip;
-
