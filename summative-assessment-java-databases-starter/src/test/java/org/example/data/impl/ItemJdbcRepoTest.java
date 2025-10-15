@@ -111,12 +111,10 @@ class ItemJdbcRepoTest {
 
     @Test
     void getItemById_ShouldThrowRecordNotFoundException() {
-        // Arrange
         int itemId = 999;
         when(jdbcTemplate.queryForObject(anyString(), any(ItemMapper.class), eq(itemId)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        // Act & Assert
         assertThrows(RecordNotFoundException.class, () -> {
             repository.getItemById(itemId);
         });
