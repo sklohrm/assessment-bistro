@@ -4,10 +4,11 @@ import org.example.data.ServerRepo;
 import org.example.data.exceptions.InternalErrorException;
 import org.example.data.exceptions.RecordNotFoundException;
 import org.example.model.Server;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-
+@Repository
 public class ServerJdbcRepo implements ServerRepo {
     @Override
     public Server getServerById(int id) throws InternalErrorException, RecordNotFoundException {
