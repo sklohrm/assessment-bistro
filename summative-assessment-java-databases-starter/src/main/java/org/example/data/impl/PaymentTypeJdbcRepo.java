@@ -21,16 +21,16 @@ public class PaymentTypeJdbcRepo implements PaymentTypeRepo {
 
     @Override
     public List<PaymentType> getAll() throws InternalErrorException {
-        final String sql = """
-            SELECT PaymentTypeID, PaymentTypeName
-            FROM PaymentType
-            ORDER BY PaymentTypeID
-        """;
+        // Use a plain string to avoid text-block (""") compiler level issues
+        final String sql =
+                "SELECT PaymentTypeID, PaymentTypeName " +
+                        "FROM PaymentType " +
+                        "ORDER BY PaymentTypeID";
+
         try {
             return jdbc.query(sql, new PaymentTypeMapper());
         } catch (DataAccessException ex) {
-            throw new InternalErrorException("Failed to load payment types.", ex);
+            throw new InternalErrorException(ex);
         }
     }
-
 }
