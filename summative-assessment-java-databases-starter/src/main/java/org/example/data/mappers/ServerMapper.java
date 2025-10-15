@@ -11,12 +11,14 @@ public class ServerMapper implements RowMapper<Server> {
     public Server mapRow(ResultSet rs, int rowNum) throws SQLException {
         Server server = new Server();
         server.setServerID(rs.getInt("ServerID"));
-        server.setFirstName(rs.getString("FirstName"));
-        server.setLastName(rs.getString("LastName"));
-        // TODO: Is this cast correct
-        server.setHireDate(rs.getDate("HireDate").toLocalDate());
-        // TODO: Do we need to handle null values here?
-        server.setTermDate(rs.getDate("TermDate").toLocalDate());
+        server.setFirstName(rs.getString("ServerFirstName"));
+        server.setLastName(rs.getString("ServerLastName"));
+        if (rs.getDate("ServerHireDate") != null) {
+            server.setHireDate(rs.getDate("ServerHireDate").toLocalDate());
+        }
+        if (rs.getDate("ServerTermDate") != null) {
+            server.setTermDate(rs.getDate("ServerTermDate").toLocalDate());
+        }
         return server;
     }
 }
