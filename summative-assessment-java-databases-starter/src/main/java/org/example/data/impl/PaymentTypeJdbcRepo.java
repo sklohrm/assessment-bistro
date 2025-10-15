@@ -4,11 +4,11 @@ import org.example.data.PaymentTypeRepo;
 import org.example.data.exceptions.InternalErrorException;
 import org.example.data.mappers.PaymentTypeMapper;
 import org.example.model.PaymentType;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class PaymentTypeJdbcRepo implements PaymentTypeRepo {
@@ -21,10 +21,16 @@ public class PaymentTypeJdbcRepo implements PaymentTypeRepo {
 
     @Override
     public List<PaymentType> getAll() throws InternalErrorException {
-        return List.of();
+        final String sql = """
+            SELECT PaymentTypeID, PaymentTypeName
+            FROM PaymentType
+            ORDER BY PaymentTypeID
+        """;
+        try {
+            return jdbc.query(sql, new PaymentTypeMapper());
+        } catch (DataAccessException ex) {
+            throw new InternalErrorException("Failed to load payment types.", ex);
+        }
     }
 
-    // Implement later:
-    // public List<PaymentType> findAll() { ... }
-    // public Optional<PaymentType> findById(int id) { ... }
 }
