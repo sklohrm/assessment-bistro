@@ -8,10 +8,12 @@ import org.example.model.Item;
 import org.example.model.ItemCategory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Repository
 public class ItemJdbcRepo implements ItemRepo {
     private final JdbcTemplate jdbcTemplate;
 
@@ -35,12 +37,9 @@ public class ItemJdbcRepo implements ItemRepo {
     @Override
     public List<Item> getAllAvailableItems(LocalDate today) throws InternalErrorException {
         final String sql = getSelectQuery() +
-                " WHERE is_public = true;"; // TODO: logic for date range
-
-//        WHERE StartDate >= '2024-01-01'
-//        AND EndDate < '2025-01-01';
-
-        // null handler?
+        " WHERE StartDate >= " + today +
+        " AND (EndDate < " + today +
+                " OR EndDate IS NULL);"; // assumes Null EndDate means items available
 
         ItemMapper mapper = new ItemMapper();
 
