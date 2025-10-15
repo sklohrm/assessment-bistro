@@ -3,6 +3,7 @@ package org.example.data.impl;
 import org.example.data.ItemRepo;
 import org.example.data.exceptions.InternalErrorException;
 import org.example.data.exceptions.RecordNotFoundException;
+import org.example.data.mappers.ItemCategoryMapper;
 import org.example.data.mappers.ItemMapper;
 import org.example.model.Item;
 import org.example.model.ItemCategory;
@@ -11,7 +12,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public class ItemJdbcRepo implements ItemRepo {
@@ -48,12 +52,33 @@ public class ItemJdbcRepo implements ItemRepo {
 
     @Override
     public List<Item> getItemsByCategory(LocalDate today, int itemCategoryID) throws InternalErrorException {
-        return List.of();
+        final String sql = getSelectQuery() + " WHERE ItemCategoryID = ?;";
+        ItemMapper mapper = new ItemMapper();
+        List<Item> items = new ArrayList<>();
+        try {
+            items.add(jdbcTemplate.queryForObject(sql, mapper, itemCategoryID));
+            return items;
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
     }
 
     @Override
     public List<ItemCategory> getAllItemCategories() throws InternalErrorException {
-        return List.of();
+        final String sql = getSelectDistinctQuery();
+
+        ItemCategoryMapper mapper = new ItemCategoryMapper();
+
+        try {
+            List<ItemCategory> categories = jdbcTemplate.query(sql, mapper);
+
+            // Use LinkedHashSet to preserve order and eliminate duplicates
+            Set<ItemCategory> uniqueCategories = new LinkedHashSet<>(categories);
+
+            return new ArrayList<>(uniqueCategories);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private String getSelectQuery() {
@@ -68,5 +93,13 @@ public class ItemJdbcRepo implements ItemRepo {
                 "FROM SimpleBistro.Item " +
                 "INNER JOIN SimpleBistro.ItemCategory " +
                 "ON Item.ItemCategoryID = ItemCategory.ItemCategoryID";
+    }
+
+    private String getSelectDistinctQuery() {
+        return "SELECT DISTINCT " +
+                "ItemCategory.ItemCategoryID, " +
+                "ItemCategory.ItemCategoryName " +
+                "FROM SimpleBistro.ItemCategory " +
+                "ORDER BY ItemCategory.ItemCategoryName;";
     }
 }
