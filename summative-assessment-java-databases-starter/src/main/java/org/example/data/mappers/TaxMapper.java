@@ -12,7 +12,6 @@ public class TaxMapper implements RowMapper<Tax> {
         Tax tax = new Tax();
         tax.setTaxID(rs.getInt("TaxID"));
         tax.setTaxPercentage(rs.getBigDecimal("TaxPercentage"));
-        // TODO: Is this cast ok?
         tax.setStartDate(rs.getDate("StartDate").toLocalDate());
         tax.setEndDate(rs.getDate("EndDate").toLocalDate());
         return tax;

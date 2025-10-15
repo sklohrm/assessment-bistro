@@ -21,11 +21,11 @@ public class ItemMapper implements RowMapper<Item> {
         item.setItemName(rs.getString("ItemName"));
         item.setItemDescription(rs.getString("ItemDescription"));
 
-        if (rs.getDate("ItemStartDate") != null) {
-            item.setStartDate(rs.getDate("ItemStartDate").toLocalDate());
+        if (rs.getDate("StartDate") != null) {
+            item.setStartDate(rs.getDate("StartDate").toLocalDate());
         }
-        if (rs.getDate("ItemEndDate") != null) {
-            item.setEndDate(rs.getDate("ItemEndDate").toLocalDate());
+        if (rs.getDate("EndDate") != null) {
+            item.setEndDate(rs.getDate("EndDate").toLocalDate());
         }
 
         item.setUnitPrice(rs.getBigDecimal("UnitPrice"));

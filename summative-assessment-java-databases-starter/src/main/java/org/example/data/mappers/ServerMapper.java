@@ -11,13 +11,13 @@ public class ServerMapper implements RowMapper<Server> {
     public Server mapRow(ResultSet rs, int rowNum) throws SQLException {
         Server server = new Server();
         server.setServerID(rs.getInt("ServerID"));
-        server.setFirstName(rs.getString("ServerFirstName"));
-        server.setLastName(rs.getString("ServerLastName"));
-        if (rs.getDate("ServerHireDate") != null) {
-            server.setHireDate(rs.getDate("ServerHireDate").toLocalDate());
+        server.setFirstName(rs.getString("FirstName"));
+        server.setLastName(rs.getString("LastName"));
+        if (rs.getDate("HireDate") != null) {
+            server.setHireDate(rs.getDate("HireDate").toLocalDate());
         }
-        if (rs.getDate("ServerTermDate") != null) {
-            server.setTermDate(rs.getDate("ServerTermDate").toLocalDate());
+        if (rs.getDate("TermDate") != null) {
+            server.setTermDate(rs.getDate("TermDate").toLocalDate());
         }
         return server;
     }
