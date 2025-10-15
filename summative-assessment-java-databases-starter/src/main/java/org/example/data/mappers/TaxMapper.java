@@ -7,13 +7,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class TaxMapper implements RowMapper<Tax> {
+
     @Override
     public Tax mapRow(ResultSet rs, int rowNum) throws SQLException {
         Tax tax = new Tax();
+
+        // IDs / Numbers
         tax.setTaxID(rs.getInt("TaxID"));
         tax.setTaxPercentage(rs.getBigDecimal("TaxPercentage"));
-        tax.setStartDate(rs.getDate("StartDate").toLocalDate());
-        tax.setEndDate(rs.getDate("EndDate").toLocalDate());
+
+        // Dates
+        java.sql.Date start = rs.getDate("StartDate");
+        tax.setStartDate(start == null ? null : start.toLocalDate());
+
+        java.sql.Date end = rs.getDate("EndDate");
+        tax.setEndDate(end == null ? null : end.toLocalDate());
+
         return tax;
     }
 }
