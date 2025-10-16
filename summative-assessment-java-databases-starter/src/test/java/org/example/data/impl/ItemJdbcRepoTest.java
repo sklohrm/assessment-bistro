@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -34,7 +35,6 @@ class ItemJdbcRepoTest {
     private ItemJdbcRepo repository;
 
     private Item expectedItem;
-    private String expectedSql;
     private List<Item> expectedItems;
     private LocalDate testDate;
     private Item testItem;
@@ -212,5 +212,16 @@ class ItemJdbcRepoTest {
         assertEquals(0, result.size());
 
         verify(jdbcTemplate, times(1)).query(anyString(), any(ItemCategoryMapper.class));
+    }
+
+    @Test
+    void testGetAllItemCategories_CatchesExceptionAndReturnsNull() throws InternalErrorException {
+        when(jdbcTemplate.query(anyString(), any(ItemCategoryMapper.class)))
+                .thenThrow(new DataAccessException("Database connection failed") {});
+
+        List<ItemCategory> result = repository.getAllItemCategories();
+
+        assertNull(result, "Expected null when exception is caught");
+        verify(jdbcTemplate).query(anyString(), any(ItemCategoryMapper.class));
     }
 }
