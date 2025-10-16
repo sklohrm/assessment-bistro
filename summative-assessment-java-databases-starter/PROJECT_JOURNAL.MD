@@ -11,9 +11,10 @@ Given the method signatures in the data interfaces, we immediately created a dia
 - Implement JDBC Repositories to handle DB CRUD functionality
 - Create unit tests for the repository methods as they're being built to avoid headaches later.
 
-### Challenges along the way
+### Challenges and Open Ended Questions
 
-Having multiple people from different time zones referencing different systems and local SQL databases presents some challenges:
+Various challenges encountered on this project:
 
 - Requires being conscientious of altering data tables everyone references.
 - When testing, does it make more sense to create a DB double, set up mock services, or write tests that leave no trace in the real DB?
+- Logic around Orders join nearly every table in the database, introducing large queries and complexity. Could there be a more efficient way to design the data tables?
