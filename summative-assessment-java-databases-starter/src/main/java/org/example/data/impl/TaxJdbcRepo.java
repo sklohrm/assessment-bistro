@@ -5,6 +5,7 @@ import org.example.data.exceptions.InternalErrorException;
 import org.example.data.exceptions.RecordNotFoundException;
 import org.example.data.mappers.TaxMapper;
 import org.example.model.Tax;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -18,6 +19,7 @@ public class TaxJdbcRepo implements TaxRepo {
 
     private final JdbcTemplate jdbc;
 
+    @Autowired
     public TaxJdbcRepo(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
