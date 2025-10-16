@@ -52,12 +52,11 @@ public class ItemJdbcRepo implements ItemRepo {
 
     @Override
     public List<Item> getItemsByCategory(LocalDate today, int itemCategoryID) throws InternalErrorException {
-        final String sql = getSelectQuery() + " WHERE ItemCategoryID = ?;";
+        final String sql = getSelectQuery() + " WHERE Item.ItemCategoryID = ?;";
         ItemMapper mapper = new ItemMapper();
         List<Item> items = new ArrayList<>();
         try {
-            items.add(jdbcTemplate.queryForObject(sql, mapper, itemCategoryID));
-            return items;
+            return jdbcTemplate.query(sql, mapper, itemCategoryID);
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
