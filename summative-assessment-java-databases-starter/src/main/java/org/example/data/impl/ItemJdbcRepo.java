@@ -54,7 +54,6 @@ public class ItemJdbcRepo implements ItemRepo {
     public List<Item> getItemsByCategory(LocalDate today, int itemCategoryID) throws InternalErrorException {
         final String sql = getSelectQuery() + " WHERE Item.ItemCategoryID = ?;";
         ItemMapper mapper = new ItemMapper();
-        List<Item> items = new ArrayList<>();
         try {
             return jdbcTemplate.query(sql, mapper, itemCategoryID);
         } catch (EmptyResultDataAccessException ex) {
