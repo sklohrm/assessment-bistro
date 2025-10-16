@@ -22,12 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:mysql://localhost:3306/SimpleBistro?serverTimezone=America/New_York",
-        "spring.datasource.username=root",
-        "spring.datasource.password=",
-        "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver"
-})
 
 class TaxJdbcRepoTest extends DbResetSupport {
 
