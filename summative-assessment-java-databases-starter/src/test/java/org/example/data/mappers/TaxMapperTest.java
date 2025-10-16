@@ -9,7 +9,18 @@ import java.sql.ResultSet;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link org.example.data.mappers.TaxMapper}
+ * Focuses on coverting SQL dates to {@link java.time.LocalDate} and
+ * handling a nullable {@code EndDate} safely
+ */
+
 class TaxMapperTest {
+
+    /**
+     * Ensures all colums map correctly when {@code EndDate} is present
+     * @throws Exception
+     */
 
     @Test
     void mapRow_mapsAllColumns_withEndDate() throws Exception {
@@ -27,6 +38,10 @@ class TaxMapperTest {
         assertEquals(java.time.LocalDate.of(2022, 1, 1), t.getStartDate());
         assertEquals(java.time.LocalDate.of(2022, 12, 31), t.getEndDate());
     }
+
+    /**
+     * Ensures {@code EndDate} is mapped to {@code null} when the DB column is NULL.
+     */
 
     @Test
     void mapRow_handlesNullEndDate() throws Exception {

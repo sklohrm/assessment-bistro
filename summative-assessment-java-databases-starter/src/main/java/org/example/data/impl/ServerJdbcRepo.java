@@ -14,6 +14,11 @@ import java.time.LocalDate;
 import java.sql.Date;
 import java.util.List;
 
+/**
+ * JDBC implementatio of {@link ServerRepo}
+ * Read-only queries over the {@code Server} table
+ */
+
 @Repository
 public class ServerJdbcRepo implements ServerRepo {
 
@@ -23,6 +28,12 @@ public class ServerJdbcRepo implements ServerRepo {
     public ServerJdbcRepo(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
+
+    /**
+     * Finds a server by primary key
+     * @throws InternalErrorException on SQL Errors
+     * @throws RecordNotFoundException if the id does not exist
+     */
 
     @Override
     public Server getServerById(int id) throws InternalErrorException, RecordNotFoundException {
@@ -41,6 +52,12 @@ public class ServerJdbcRepo implements ServerRepo {
             throw new InternalErrorException(ex);
         }
     }
+
+    /**
+     * Returns all servers considered "available" on the given date
+     * {@code HireDate <= date} AND {@code (TermDate IS NULL OR TermDate >= date)}
+     * @throws InternalErrorException on SQL errors
+     */
 
     @Override
     public List<Server> getAllAvailableServers(LocalDate date) throws InternalErrorException {

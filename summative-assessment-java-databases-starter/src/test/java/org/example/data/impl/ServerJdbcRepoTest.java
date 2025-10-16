@@ -10,6 +10,12 @@ import org.springframework.test.context.TestPropertySource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Integration tests for {@link ServerJdbcRepo}.
+ * Runs against the real MySQL database (NOT H2), pinned via @TestPropertySource.
+ * DbResetSupport attempts to reset state before each test.
+ */
+
 @SpringBootTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
@@ -21,6 +27,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ServerJdbcRepoTest extends DbResetSupport {
     @Autowired ServerJdbcRepo repo;
+
+    /**
+     * Returns at least one available server on a seeded date; spot-checks fields.
+     */
 
     @Test
     void getAllAvailableServers_onKnownDate_returnsList() throws Exception {
@@ -34,6 +44,11 @@ class ServerJdbcRepoTest extends DbResetSupport {
         assertNotNull(s.getFirstName());
         assertNotNull(s.getHireDate());
     }
+
+    /**
+     * Gets a real ID from the availability list and verifies find-by-id.
+     * Avoids hard-coding IDs that may vary by seed order.
+     */
 
     @Test
     void getServerById_returnsOne_forExistingId() throws Exception {

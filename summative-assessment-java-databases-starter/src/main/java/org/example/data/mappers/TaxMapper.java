@@ -6,6 +6,11 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * Maps a {@code Tax} row to a {@link Tax} object
+ * Handles nullable {@code EndDate} safely
+ */
+
 public class TaxMapper implements RowMapper<Tax> {
 
     @Override

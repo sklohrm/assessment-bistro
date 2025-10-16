@@ -6,7 +6,17 @@ import java.sql.ResultSet;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link ServerMapper}
+ * Uses Mockito to simulate a {@link java.sql.ResultSet} and verifies
+ * null-handling for TermDate and correct field mapping
+ */
+
 class ServerMapperTest {
+
+    /**
+     * Maps a row where {@code TermDate} is NULL.
+     */
 
     @Test
     void mapRow_mapsAllColumns_withNullTermDate() throws Exception {
@@ -25,6 +35,10 @@ class ServerMapperTest {
         assertEquals(java.time.LocalDate.of(2020, 1, 15), server.getHireDate());
         assertNull(server.getTermDate());
     }
+
+    /**
+     * Maps a row where {@code TermDate} has a value.
+     */
 
     @Test
     void mapRow_mapsTermDate_whenPresent() throws Exception {

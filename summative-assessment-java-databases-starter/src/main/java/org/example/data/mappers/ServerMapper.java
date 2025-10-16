@@ -6,6 +6,11 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * Maps a {@code Server} table row to a {@link Server} domain model
+ * Handles nullable {@code TermDate}
+ */
+
 public class ServerMapper implements RowMapper<Server> {
     @Override
     public Server mapRow(ResultSet rs, int rowNum) throws SQLException {

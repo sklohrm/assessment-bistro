@@ -13,6 +13,13 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Integration tests for {@link org.example.data.impl.TaxJdbcRepo}.
+ * Queries the real MySQL DB to fetch the tax row that covers a given date.
+ * Also asserts that the repository throws {@code RecordNotFoundException}
+ * when no configured range includes the requested date.
+ */
+
 @SpringBootTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
@@ -26,6 +33,10 @@ class TaxJdbcRepoTest extends DbResetSupport {
 
     @Autowired
     TaxJdbcRepo repo;
+
+    /**
+     * A seeded date should return exactly one current tax row.
+     */
 
     @Test
     void getCurrentTax_returnsRow_forSeededDate() throws Exception {
@@ -41,6 +52,10 @@ class TaxJdbcRepoTest extends DbResetSupport {
                 "Returned tax should cover the requested date"
         );
     }
+
+    /**
+     * Asserts that the repo throws when no tax band covers the given date.
+     */
 
     @Test
     void getCurrentTax_throwsWhenNoRangeCoversDate() {

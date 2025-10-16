@@ -10,14 +10,25 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * JDBC implementation of {@link PaymentTypeRepo}
+ * Read-only access to the {@code PaymentType} lookup table
+ */
+
 @Repository
 public class PaymentTypeJdbcRepo implements PaymentTypeRepo {
 
     private final JdbcTemplate jdbc;
 
+    /** Constructor injection of the configured {@link JdbcTemplate} */
     public PaymentTypeJdbcRepo(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
+
+    /**
+     * Returns all payment types order by ID
+     * @throws InternalErrorException wraps any SQL error from the driver
+     */
 
     @Override
     public List<PaymentType> getAll() throws InternalErrorException {

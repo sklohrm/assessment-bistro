@@ -14,6 +14,11 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * JDBC Implementation of {@link TaxRepo}
+ * Returns the tax row active on a specific date (inclusive bounds)
+ */
+
 @Repository
 public class TaxJdbcRepo implements TaxRepo {
 
@@ -23,6 +28,13 @@ public class TaxJdbcRepo implements TaxRepo {
     public TaxJdbcRepo(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
+
+    /**
+     * Finds the tax record where {@code StartDate <= dateOf <= EndDate}
+     * If {@code EndDate} is NULL, the row considered open-ended
+     * @throws InternalErrorException on any SQL/driver error
+     * @throws RecordNotFoundException if no row covers {@code dateOf}
+     */
 
     @Override
     public Tax getCurrentTax(LocalDate dateOf)
