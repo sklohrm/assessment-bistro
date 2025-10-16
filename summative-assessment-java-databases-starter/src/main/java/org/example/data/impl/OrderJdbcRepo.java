@@ -9,66 +9,207 @@ import org.example.data.mappers.PaymentMapper;
 import org.example.model.*;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.util.*;
 
+/**
+ * {@code OrderJdbcRepo} is a JDBC-based implementation of the {@link OrderRepo} interface.
+ * <p>
+ * This class provides CRUD operations for the {@link Order} entity and its associated
+ * {@link OrderItem}, {@link Payment}, and {@link Server} objects.
+ * </p>
+ *
+ * <p>
+ * Each method wraps SQL or data mapping errors into custom exceptions:
+ * <ul>
+ *     <li>{@link RecordNotFoundException} – thrown when an expected record is not found.</li>
+ *     <li>{@link InternalErrorException} – thrown when a lower-level exception occurs
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * This repository joins multiple related tables to construct a fully populated {@link Order}
+ * including its items, payments, and associated server data.
+ * </p>
+ */
 @Repository
 public class OrderJdbcRepo implements OrderRepo {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * Constructs a new {@code OrderJdbcRepo} using the given {@link JdbcTemplate}.
+     *
+     * @param jdbcTemplate the JDBC template used for executing SQL queries and updates
+     */
     public OrderJdbcRepo (JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Retrieves an {@link Order} by its unique identifier.
+     *
+     * @param id the unique order ID
+     * @return the {@link Order} associated with the given ID
+     * @throws RecordNotFoundException if no order exists with the provided ID
+     * @throws InternalErrorException  if an unexpected SQL or mapping error occurs
+     */
     @Override
     public Order getOrderById(int id) throws RecordNotFoundException, InternalErrorException {
         final String sql = getSelectQuery() + " WHERE o.OrderID = ?;";
+
         try {
-            return null;
-        } catch (Exception e) {
-            System.out.println();
+            List<Order> orders = fetchOrders(sql, id);
+            if (orders.isEmpty()) {
+                throw new RecordNotFoundException();
+            }
+            return orders.get(0);
+        } catch (InternalErrorException e) {
+            throw new InternalErrorException(e);
         }
-        return null;
     }
 
+    /**
+     * Retrieves all {@link Order} records in the system.
+     *
+     * @return a list of all orders
+     * @throws RecordNotFoundException if no orders exist in the database
+     * @throws InternalErrorException  if an unexpected SQL or mapping error occurs
+     */
     @Override
     public List<Order> getAllOrders() throws InternalErrorException, RecordNotFoundException {
         final String sql = getSelectQuery() + ";";
 
         try {
-            List<Order> orders = jdbcTemplate.query(sql, (ResultSetExtractor<List<Order>>) rs -> mapOrders(rs));
+            List<Order> orders = fetchOrders(sql);
             if (orders.isEmpty()) {
                 throw new RecordNotFoundException();
             }
             return orders;
-        } catch (EmptyResultDataAccessException e) {
-            return null;
+        } catch (RecordNotFoundException e) {
+            throw new RecordNotFoundException(e);
+        } catch (Exception e) {
+            throw new InternalErrorException(e);
         }
     }
 
-
-
+    /**
+     * Inserts a new {@link Order} record into the database.
+     * <p>
+     * The {@code OrderDate} field is automatically set to the current timestamp.
+     * </p>
+     *
+     * @param order the {@link Order} object to insert
+     * @return the inserted {@link Order} with its generated {@code OrderID}, or {@code null} if the insert failed
+     * @throws InternalErrorException if an SQL error or constraint violation occurs
+     */
     @Override
     public Order addOrder(Order order) throws InternalErrorException {
-        return null;
+        String sql = "INSERT INTO `Order` " +
+                "(ServerID, OrderDate, SubTotal, Tax, Tip, Total) " +
+                "VALUES (?, NOW(), ?, ?, ?, ?);";
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        try {
+            int rowsAffected = jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+                ps.setInt(1, order.getServerID());
+                ps.setBigDecimal(2, order.getSubTotal());
+                ps.setBigDecimal(3, order.getTax());
+                ps.setBigDecimal(4, order.getTip());
+                ps.setBigDecimal(5, order.getTotal());
+                return ps;
+            }, keyHolder);
+
+            if (rowsAffected <= 0) {
+                return null;
+            }
+
+            order.setOrderID(keyHolder.getKey().intValue());
+
+            return order;
+        } catch (Exception e) {
+            throw new InternalErrorException(e);
+        }
     }
 
+    /**
+     * Updates an existing {@link Order} record with new field values.
+     *
+     * @param order the {@link Order} containing updated information
+     */
     @Override
-    public void updateOrder(Order order) throws InternalErrorException {
+    public void updateOrder(Order order) {
+        String sql = "UPDATE `Order` SET " +
+                "ServerID = ?, " +
+                "OrderDate = ?, " +
+                "SubTotal = ?, " +
+                "Tax = ?, " +
+                "Tip = ?, " +
+                "Total = ? " +
+                "WHERE OrderID = ?;";
 
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
+            ps.setInt(1, order.getServerID());
+            ps.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
+            ps.setBigDecimal(3, order.getSubTotal());
+            ps.setBigDecimal(4, order.getTax());
+            ps.setBigDecimal(5, order.getTip());
+            ps.setBigDecimal(6, order.getTotal());
+            ps.setInt(7, order.getOrderID());
+            return ps;
+        });
     }
 
+    /**
+     * Deletes an {@link Order} and all related {@link Payment} and {@link OrderItem} records.
+     * <p>
+     * If the specified order does not exist, or no rows are deleted, a {@link RecordNotFoundException}
+     * is wrapped and rethrown as an {@link InternalErrorException}.
+     * </p>
+     *
+     * @param id the ID of the order to delete
+     * @return the deleted {@link Order}, if the operation succeeded
+     * @throws InternalErrorException if the order cannot be found or a SQL error occurs
+     */
     @Override
     public Order deleteOrder(int id) throws InternalErrorException {
-        return null;
+        try {
+
+            Order order = getOrderById(id);
+
+            jdbcTemplate.update("DELETE FROM Payment WHERE OrderID = ?", id);
+            jdbcTemplate.update("DELETE FROM OrderItem WHERE OrderID = ?", id);
+
+            int rowsAffected = jdbcTemplate.update("DELETE FROM `Order` WHERE OrderID = ?", id);
+
+            if (rowsAffected > 0) {
+                return order;
+            } else {
+                throw new RecordNotFoundException();
+            }
+        } catch (Exception e) {
+            throw new InternalErrorException(e);
+        }
     }
 
     // Private helper method(s)
+
+    /**
+     * Constructs the base SQL query used for fetching complete {@link Order} records with
+     * related {@link Server}, {@link OrderItem}, {@link Item}, {@link ItemCategory},
+     * {@link Payment}, and {@link PaymentType} information.
+     *
+     * @return the base SQL SELECT statement
+     */
     private String getSelectQuery() {
         return "SELECT "
                 + "    o.OrderID, "
@@ -103,33 +244,51 @@ public class OrderJdbcRepo implements OrderRepo {
                 + "LEFT JOIN Item i ON oi.ItemID = i.ItemID "
                 + "LEFT JOIN ItemCategory ic ON i.ItemCategoryID = ic.ItemCategoryID "
                 + "LEFT JOIN Payment p ON o.OrderID = p.OrderID "
-                + "LEFT JOIN PaymentType pt ON p.PaymentTypeID = pt.PaymentTypeID "
-                + "ORDER BY o.OrderID, oi.OrderItemID, p.PaymentID";
+                + "LEFT JOIN PaymentType pt ON p.PaymentTypeID = pt.PaymentTypeID ";
     }
 
-    private List<Order> mapOrders(ResultSet rs) throws SQLException {
-        Map<Integer, Order> orderMap = new HashMap<>();
+    /**
+     * Executes the given SQL query and maps the result set into a list of {@link Order} objects.
+     * <p>
+     * This method merges rows referring to the same order ID into a single {@link Order} instance,
+     * attaching all related {@link OrderItem} and {@link Payment} objects.
+     * </p>
+     *
+     * @param sql  the SQL query string
+     * @param args query parameters
+     * @return a list of {@link Order} objects
+     * @throws RecordNotFoundException if no results are returned
+     * @throws InternalErrorException  if an SQL or mapping error occurs
+     */
+    private List<Order> fetchOrders(String sql, Object... args) throws RecordNotFoundException, InternalErrorException {
+        try {
+            return jdbcTemplate.query(sql, rs -> {
 
-        OrderMapper orderMapper = new OrderMapper();
-        OrderItemMapper orderItemMapper = new OrderItemMapper();
-        PaymentMapper paymentMapper = new PaymentMapper();
+                Map<Integer, Order> orderMap = new HashMap<>();
 
-        while (rs.next()) {
-            int orderID = rs.getInt("OrderID");
+                OrderMapper orderMapper = new OrderMapper();
+                OrderItemMapper orderItemMapper = new OrderItemMapper();
+                PaymentMapper paymentMapper = new PaymentMapper();
 
-            Order order = orderMap.get(orderID);
+                while (rs.next()) {
+                    int orderID = rs.getInt("OrderID");
 
-            if (order == null) {
-                order = orderMapper.mapRow(rs, rs.getRow());
-                orderMap.put(orderID, order);
-            }
+                    Order order = orderMap.get(orderID);
+                    if (order == null) {
+                        order = orderMapper.mapRow(rs, rs.getRow());
+                        orderMap.put(orderID, order);
+                    }
 
-            order.getItems().add(orderItemMapper.mapRow(rs, rs.getRow()));
-            order.getPayments().add(paymentMapper.mapRow(rs, rs.getRow()));
+                    order.getItems().add(orderItemMapper.mapRow(rs, rs.getRow()));
+                    order.getPayments().add(paymentMapper.mapRow(rs, rs.getRow()));
+                }
+
+                return new ArrayList<>(orderMap.values());
+            }, args);
+        } catch (EmptyResultDataAccessException e) {
+            throw new RecordNotFoundException();
+        } catch (Exception e) {
+            throw new InternalErrorException(e);
         }
-
-        return new ArrayList<>(orderMap.values());
     }
-
-
 }

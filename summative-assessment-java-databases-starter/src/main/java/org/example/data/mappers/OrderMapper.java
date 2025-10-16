@@ -5,7 +5,6 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class OrderMapper implements RowMapper<Order> {
@@ -18,12 +17,7 @@ public class OrderMapper implements RowMapper<Order> {
 
         order.setOrderID(rs.getInt("OrderID"));
         order.setServerID(rs.getInt("ServerID"));
-
-        Timestamp ts = rs.getTimestamp("OrderDate");
-        if (ts != null) {
-            order.setOrderDate(ts.toLocalDateTime());
-        }
-
+        order.setOrderDate(rs.getTimestamp("OrderDate").toLocalDateTime());
         order.setSubTotal(rs.getBigDecimal("SubTotal"));
         order.setTax(rs.getBigDecimal("Tax"));
         order.setTip(rs.getBigDecimal("Tip"));
