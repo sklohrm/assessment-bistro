@@ -11,14 +11,14 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link org.example.data.mappers.TaxMapper}
- * Focuses on coverting SQL dates to {@link java.time.LocalDate} and
+ * Focuses on converting SQL dates to {@link java.time.LocalDate} and
  * handling a nullable {@code EndDate} safely
  */
 
 class TaxMapperTest {
 
     /**
-     * Ensures all colums map correctly when {@code EndDate} is present
+     * Ensures all columns map correctly when {@code EndDate} is present
      * @throws Exception
      */
 
