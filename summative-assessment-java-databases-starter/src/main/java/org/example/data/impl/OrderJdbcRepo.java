@@ -113,83 +113,28 @@ public class OrderJdbcRepo implements OrderRepo {
     @Override
     @Transactional
     public Order addOrder(Order order) throws InternalErrorException {
-        String sqlOrder = "INSERT INTO `Order` " +
-                "(ServerID, OrderDate, SubTotal, Tax, Tip, Total) " +
-                "VALUES (?, NOW(), ?, ?, ?, ?);";
-
-        String sqlOrderItem = "INSERT INTO OrderItem " +
-                "(OrderID, ItemID, Quantity, Price) " +
-                "VALUES (?, ?, ?, ?);";
-
-        String sqlPayment = "INSERT INTO Payment " +
-                "(PaymentTypeID, OrderID, Amount) " +
-                "VALUES (?, ?, ?);";
-
-
-        KeyHolder keyHolder = new GeneratedKeyHolder();
         try {
-            int rowsAffected = jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sqlOrder, PreparedStatement.RETURN_GENERATED_KEYS);
+            // Insert Order
+            String sqlOrder = """
+            INSERT INTO `Order` (ServerID, OrderDate, SubTotal, Tax, Tip, Total)
+            VALUES (?, NOW(), ?, ?, ?, ?)
+        """;
 
+            int orderID = insertAndReturnKey(sqlOrder, ps -> {
                 ps.setInt(1, order.getServerID());
                 ps.setBigDecimal(2, order.getSubTotal());
                 ps.setBigDecimal(3, order.getTax());
                 ps.setBigDecimal(4, order.getTip());
                 ps.setBigDecimal(5, order.getTotal());
-                return ps;
-            }, keyHolder);
+            });
 
-            if (rowsAffected <= 0) {
-                return null;
-            }
-
-            int orderID = keyHolder.getKey().intValue();
             order.setOrderID(orderID);
 
-            List<OrderItem> items = order.getItems();
-            if (items != null && !items.isEmpty()) {
-                for (OrderItem item : items) {
-                    keyHolder = new GeneratedKeyHolder();
-                    jdbcTemplate.update(connection -> {
-                        PreparedStatement ps = connection.prepareStatement(sqlOrderItem, PreparedStatement.RETURN_GENERATED_KEYS);
-                        ps.setInt(1, orderID);
-                        ps.setInt(2, item.getItemID());
-                        ps.setInt(3, item.getQuantity());
-                        ps.setBigDecimal(4, item.getPrice());
-                        return ps;
-                    }, keyHolder);
+            // Insert OrderItems
+            deleteAndInsertOrderItems(orderID, order.getItems());
 
-                    item.setOrderItemID(keyHolder.getKey().intValue());
-                }
-            }
-
-            List<Payment> payments = order.getPayments();
-            if (payments != null && !payments.isEmpty()) {
-                for (Payment payment : payments) {
-                    keyHolder = new GeneratedKeyHolder();
-                    jdbcTemplate.update(connection -> {
-                        PreparedStatement ps = connection.prepareStatement(sqlPayment, PreparedStatement.RETURN_GENERATED_KEYS);
-                        ps.setInt(1, payment.getPaymentTypeID());
-                        ps.setInt(2, orderID);
-                        ps.setBigDecimal(3, payment.getAmount());
-                        return ps;
-                    }, keyHolder);
-
-                    payment.setPaymentID(keyHolder.getKey().intValue());
-                }
-            }
-
-            System.out.println("TEST");
-            System.out.println("TEST");
-            System.out.println("TEST");
-            System.out.println("TEST");
-            System.out.println("Inserted order items: " + order.getItems());
-            System.out.println("Inserted payments: " + order.getPayments());
-            System.out.println("TEST");
-            System.out.println("TEST");
-            System.out.println("TEST");
-            System.out.println("TEST");
-
+            // Insert Payments
+            deleteAndInsertPayments(orderID, order.getPayments());
 
             return order;
         } catch (Exception e) {
@@ -203,29 +148,40 @@ public class OrderJdbcRepo implements OrderRepo {
      * @param order the {@link Order} containing updated information
      */
     @Override
-    public void updateOrder(Order order) {
-        String sql = "UPDATE `Order` SET " +
-                "ServerID = ?, " +
-                "OrderDate = ?, " +
-                "SubTotal = ?, " +
-                "Tax = ?, " +
-                "Tip = ?, " +
-                "Total = ? " +
-                "WHERE OrderID = ?;";
+    @Transactional
+    public void updateOrder(Order order) throws InternalErrorException {
+        try {
+            String sqlOrder = """
+            UPDATE `Order`
+            SET ServerID = ?, OrderDate = ?, SubTotal = ?, Tax = ?, Tip = ?, Total = ?
+            WHERE OrderID = ?
+        """;
 
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sqlOrder);
+                ps.setInt(1, order.getServerID());
+                ps.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
+                ps.setBigDecimal(3, order.getSubTotal());
+                ps.setBigDecimal(4, order.getTax());
+                ps.setBigDecimal(5, order.getTip());
+                ps.setBigDecimal(6, order.getTotal());
+                ps.setInt(7, order.getOrderID());
+                return ps;
+            });
 
-            ps.setInt(1, order.getServerID());
-            ps.setTimestamp(2, Timestamp.valueOf(order.getOrderDate()));
-            ps.setBigDecimal(3, order.getSubTotal());
-            ps.setBigDecimal(4, order.getTax());
-            ps.setBigDecimal(5, order.getTip());
-            ps.setBigDecimal(6, order.getTotal());
-            ps.setInt(7, order.getOrderID());
-            return ps;
-        });
+            int orderID = order.getOrderID();
+
+            // Replace all OrderItems
+            deleteAndInsertOrderItems(orderID, order.getItems());
+
+            // Replace all Payments
+            deleteAndInsertPayments(orderID, order.getPayments());
+
+        } catch (Exception e) {
+            throw new InternalErrorException(e);
+        }
     }
+
 
     /**
      * Deletes an {@link Order} and all related {@link Payment} and {@link OrderItem} records.
@@ -259,7 +215,7 @@ public class OrderJdbcRepo implements OrderRepo {
         }
     }
 
-    // Private helper method(s)
+    // Private helper methods
 
     /**
      * Constructs the base SQL query used for fetching complete {@link Order} records with
@@ -366,6 +322,84 @@ public class OrderJdbcRepo implements OrderRepo {
             throw new RecordNotFoundException();
         } catch (Exception e) {
             throw new InternalErrorException(e);
+        }
+    }
+
+    /**
+     * Executes the given SQL and returns the generated key
+     * <p>
+     * This method wraps pattern of preparing a statement, setting parameters,
+     * executing the update, and retrieving the generated key.
+     * </p>
+     *
+     * @param sql    the SQL insert statement with placeholders for parameters
+     * @param setter a {@link PreparedStatementSetter} that sets the parameter values on the {@link PreparedStatement}
+     * @return the generated key as an {@code int}
+     * @throws InternalErrorException if a SQL error occurs or the key cannot be retrieved
+     */
+    private int insertAndReturnKey(String sql, PreparedStatementSetter setter) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            setter.setValues(ps);
+            return ps;
+        }, keyHolder);
+        return keyHolder.getKey().intValue();
+    }
+
+    /**
+     * Functional interface used to set parameters on a {@link PreparedStatement}.
+     * <p>
+     * Implementations define how the SQL parameters should be populated before execution.
+     * </p>
+     */
+    @FunctionalInterface
+    private interface PreparedStatementSetter {
+        void setValues(PreparedStatement ps) throws SQLException;
+    }
+
+    /**
+     * Deletes all {@link OrderItem} records for the specified order and inserts the provided list of items.
+     * <p>
+     * If the {@code items} list is null or empty, no insertion occurs after the deletion.
+     * </p>
+     *
+     * @param orderID the ID of the order whose items should be replaced
+     * @param items   the list of {@link OrderItem} objects to insert
+     */
+    private void deleteAndInsertOrderItems(int orderID, List<OrderItem> items) {
+        jdbcTemplate.update("DELETE FROM OrderItem WHERE OrderID = ?", orderID);
+
+        if (items != null && !items.isEmpty()) {
+            String sql = "INSERT INTO OrderItem (OrderID, ItemID, Quantity, Price) VALUES (?, ?, ?, ?)";
+            jdbcTemplate.batchUpdate(sql, items, items.size(), (ps, item) -> {
+                ps.setInt(1, orderID);
+                ps.setInt(2, item.getItemID());
+                ps.setInt(3, item.getQuantity());
+                ps.setBigDecimal(4, item.getPrice());
+            });
+        }
+    }
+
+    /**
+     * Deletes all {@link Payment} records for the specified order and inserts the provided list of payments.
+     * <p>
+     * If the {@code payments} list is null or empty, no insertion occurs after the deletion.
+     * </p>
+     *
+     * @param orderID  the ID of the order whose payments should be replaced
+     * @param payments the list of {@link Payment} objects to insert
+     */
+    private void deleteAndInsertPayments(int orderID, List<Payment> payments) {
+        jdbcTemplate.update("DELETE FROM Payment WHERE OrderID = ?", orderID);
+
+        if (payments != null && !payments.isEmpty()) {
+            String sql = "INSERT INTO Payment (PaymentTypeID, OrderID, Amount) VALUES (?, ?, ?)";
+            jdbcTemplate.batchUpdate(sql, payments, payments.size(), (ps, payment) -> {
+                ps.setInt(1, payment.getPaymentTypeID());
+                ps.setInt(2, orderID);
+                ps.setBigDecimal(3, payment.getAmount());
+            });
         }
     }
 }
