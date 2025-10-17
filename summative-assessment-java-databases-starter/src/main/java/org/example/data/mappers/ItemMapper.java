@@ -1,13 +1,10 @@
 package org.example.data.mappers;
 
 import org.example.model.Item;
-import org.example.model.ItemCategory;
 import org.springframework.jdbc.core.RowMapper;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 
 public class ItemMapper implements RowMapper<Item> {
 

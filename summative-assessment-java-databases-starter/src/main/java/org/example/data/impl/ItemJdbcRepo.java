@@ -25,6 +25,10 @@ public class ItemJdbcRepo implements ItemRepo {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Queries to Item table also join the ItemCategory table as they are logically dependent on each other
+     */
+
     @Override
     public Item getItemById(int id) throws RecordNotFoundException, InternalErrorException {
         final String sql = getSelectQuery() + " WHERE Item.ItemID = ?;";
@@ -38,12 +42,16 @@ public class ItemJdbcRepo implements ItemRepo {
         }
     }
 
+    /**
+     * getAllAvailableItems() will return items if date falls within the specified range, or if EndDate is left
+     * Null, suggesting that the item is always available
+     */
     @Override
     public List<Item> getAllAvailableItems(LocalDate today) throws InternalErrorException {
         final String sql = getSelectQuery() +
         " WHERE StartDate >= " + today +
         " AND (EndDate < " + today +
-                " OR EndDate IS NULL);"; // assumes Null EndDate means items available
+                " OR EndDate IS NULL);";
 
         ItemMapper mapper = new ItemMapper();
 
@@ -70,7 +78,7 @@ public class ItemJdbcRepo implements ItemRepo {
         try {
             List<ItemCategory> categories = jdbcTemplate.query(sql, mapper);
 
-            // Use LinkedHashSet to preserve order and eliminate duplicates
+            // LinkedHashSet preserves order and eliminates duplicates
             Set<ItemCategory> uniqueCategories = new LinkedHashSet<>(categories);
 
             return new ArrayList<>(uniqueCategories);
