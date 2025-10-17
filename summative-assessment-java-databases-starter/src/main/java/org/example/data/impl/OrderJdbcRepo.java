@@ -12,8 +12,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -109,15 +111,25 @@ public class OrderJdbcRepo implements OrderRepo {
      * @throws InternalErrorException if an SQL error or constraint violation occurs
      */
     @Override
+    @Transactional
     public Order addOrder(Order order) throws InternalErrorException {
-        String sql = "INSERT INTO `Order` " +
+        String sqlOrder = "INSERT INTO `Order` " +
                 "(ServerID, OrderDate, SubTotal, Tax, Tip, Total) " +
                 "VALUES (?, NOW(), ?, ?, ?, ?);";
+
+        String sqlOrderItem = "INSERT INTO OrderItem " +
+                "(OrderID, ItemID, Quantity, Price) " +
+                "VALUES (?, ?, ?, ?);";
+
+        String sqlPayment = "INSERT INTO Payment " +
+                "(PaymentTypeID, OrderID, Amount) " +
+                "VALUES (?, ?, ?);";
+
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         try {
             int rowsAffected = jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sqlOrder, PreparedStatement.RETURN_GENERATED_KEYS);
 
                 ps.setInt(1, order.getServerID());
                 ps.setBigDecimal(2, order.getSubTotal());
@@ -131,7 +143,53 @@ public class OrderJdbcRepo implements OrderRepo {
                 return null;
             }
 
-            order.setOrderID(keyHolder.getKey().intValue());
+            int orderID = keyHolder.getKey().intValue();
+            order.setOrderID(orderID);
+
+            List<OrderItem> items = order.getItems();
+            if (items != null && !items.isEmpty()) {
+                for (OrderItem item : items) {
+                    keyHolder = new GeneratedKeyHolder();
+                    jdbcTemplate.update(connection -> {
+                        PreparedStatement ps = connection.prepareStatement(sqlOrderItem, PreparedStatement.RETURN_GENERATED_KEYS);
+                        ps.setInt(1, orderID);
+                        ps.setInt(2, item.getItemID());
+                        ps.setInt(3, item.getQuantity());
+                        ps.setBigDecimal(4, item.getPrice());
+                        return ps;
+                    }, keyHolder);
+
+                    item.setOrderItemID(keyHolder.getKey().intValue());
+                }
+            }
+
+            List<Payment> payments = order.getPayments();
+            if (payments != null && !payments.isEmpty()) {
+                for (Payment payment : payments) {
+                    keyHolder = new GeneratedKeyHolder();
+                    jdbcTemplate.update(connection -> {
+                        PreparedStatement ps = connection.prepareStatement(sqlPayment, PreparedStatement.RETURN_GENERATED_KEYS);
+                        ps.setInt(1, payment.getPaymentTypeID());
+                        ps.setInt(2, orderID);
+                        ps.setBigDecimal(3, payment.getAmount());
+                        return ps;
+                    }, keyHolder);
+
+                    payment.setPaymentID(keyHolder.getKey().intValue());
+                }
+            }
+
+            System.out.println("TEST");
+            System.out.println("TEST");
+            System.out.println("TEST");
+            System.out.println("TEST");
+            System.out.println("Inserted order items: " + order.getItems());
+            System.out.println("Inserted payments: " + order.getPayments());
+            System.out.println("TEST");
+            System.out.println("TEST");
+            System.out.println("TEST");
+            System.out.println("TEST");
+
 
             return order;
         } catch (Exception e) {
@@ -273,14 +331,33 @@ public class OrderJdbcRepo implements OrderRepo {
                 while (rs.next()) {
                     int orderID = rs.getInt("OrderID");
 
-                    Order order = orderMap.get(orderID);
-                    if (order == null) {
-                        order = orderMapper.mapRow(rs, rs.getRow());
-                        orderMap.put(orderID, order);
+                    Order order = orderMap.computeIfAbsent(orderID, id -> {
+                        try {
+                            return orderMapper.mapRow(rs, rs.getRow());
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+                    // Track added OrderItems
+                    if (rs.getObject("OrderItemID") != null) {
+                        int orderItemID = rs.getInt("OrderItemID");
+                        boolean alreadyAdded = order.getItems().stream()
+                                .anyMatch(oi -> oi.getOrderItemID() == orderItemID);
+                        if (!alreadyAdded) {
+                            order.getItems().add(orderItemMapper.mapRow(rs, rs.getRow()));
+                        }
                     }
 
-                    order.getItems().add(orderItemMapper.mapRow(rs, rs.getRow()));
-                    order.getPayments().add(paymentMapper.mapRow(rs, rs.getRow()));
+                    // Track added payments
+                    if (rs.getObject("PaymentID") != null) {
+                        int paymentID = rs.getInt("PaymentID");
+                        boolean alreadyAdded = order.getPayments().stream()
+                                .anyMatch(p -> p.getPaymentID() == paymentID);
+                        if (!alreadyAdded) {
+                            order.getPayments().add(paymentMapper.mapRow(rs, rs.getRow()));
+                        }
+                    }
                 }
 
                 return new ArrayList<>(orderMap.values());
