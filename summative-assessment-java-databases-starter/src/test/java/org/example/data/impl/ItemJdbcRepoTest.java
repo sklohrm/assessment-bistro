@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,6 +41,10 @@ class ItemJdbcRepoTest {
     private Item testItem;
     private int testCategoryId;
     private List<ItemCategory> expectedCategories;
+
+    /**
+     * Tests use a mock database repository as an alternative to using a duplicate Test table
+     */
 
     @BeforeEach
     void setUp() {
@@ -155,8 +160,8 @@ class ItemJdbcRepoTest {
 
     @Test
     void getItemsByCategory_ShouldReturnListWithOneItem() throws InternalErrorException {
-        when(jdbcTemplate.queryForObject(anyString(), any(ItemMapper.class), eq(testCategoryId)))
-                .thenReturn(testItem);
+        when(jdbcTemplate.query(anyString(), any(ItemMapper.class), eq(testCategoryId)))
+                .thenReturn(Collections.singletonList(testItem));
 
         List<Item> result = repository.getItemsByCategory(testDate, testCategoryId);
 
@@ -167,12 +172,12 @@ class ItemJdbcRepoTest {
         assertEquals(testItem.getItemName(), result.get(0).getItemName());
 
         verify(jdbcTemplate, times(1))
-                .queryForObject(anyString(), any(ItemMapper.class), eq(testCategoryId));
+                .query(anyString(), any(ItemMapper.class), eq(testCategoryId));
     }
 
     @Test
     void getItemsByCategory_ShouldReturnNull() throws InternalErrorException {
-        when(jdbcTemplate.queryForObject(anyString(), any(ItemMapper.class), eq(testCategoryId)))
+        when(jdbcTemplate.query(anyString(), any(ItemMapper.class), eq(testCategoryId)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
         List<Item> result = repository.getItemsByCategory(testDate, testCategoryId);
@@ -180,7 +185,7 @@ class ItemJdbcRepoTest {
         assertNull(result);
 
         verify(jdbcTemplate, times(1))
-                .queryForObject(anyString(), any(ItemMapper.class), eq(testCategoryId));
+                .query(anyString(), any(ItemMapper.class), eq(testCategoryId));
     }
 
     @Test
