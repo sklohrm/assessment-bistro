@@ -19,7 +19,7 @@ Various challenges encountered on this project:
 - When testing, does it make more sense to create a DB double, set up mock services, or write tests that leave no trace in the real DB?
 - Logic around Orders join nearly every table in the database, introducing large queries and complexity. Could there be a more efficient way to design the data tables?
 
-- OrderJdbcRepo
+### OrderJdbcRepo
   - We didn't realize it when initially looking over the project, but this repo has a lot of responsibilities.
   - I wrote the methods, but in testing the App found that this repo is responsible for updating all tables associated
     with the associated Order.
@@ -31,3 +31,8 @@ Various challenges encountered on this project:
   - I also added the insertAndReturnKey method to cut down on the clutter in the addOrder method, and to get some
     practice using @FunctionalInterface, which I had read into when we went over lambda functions, but didn't have a 
     chance to use yet.
+
+### Testing
+
+- Unit tests were written as the Repo methods were being built to ensure best coding practices, and were occasionally updated as necessary changes were made to those methods. Unit tests were run at all stages of the project.
+- Manual QA testing was conducted in the later stages of the project, with the bistro worker or manager UX in mind. Input values and boundaries were tested (but already implemented with the previous version of the app), so most testing involved CRUD operations and making sure that changes within the UI were reflected in the local DB, and vice versa.
