@@ -31,8 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-src/test/resources/application.properties
-src/main/resources/application.properties
-summative-assessment-java-databases-starter/src/main/resources/application.properties
-summative-assessment-java-databases-starter/src/test/resources/application.properties
